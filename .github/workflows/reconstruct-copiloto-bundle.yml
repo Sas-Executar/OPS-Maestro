@@ -1,0 +1,39 @@
+name: Reconstruct Copiloto Solution Store
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'inputs/packages/.copiloto-upload/**'
+      - '.github/workflows/reconstruct-copiloto-bundle.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct and verify original ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat inputs/packages/.copiloto-upload/part-* > inputs/packages/copiloto-executar-solution-store.zip
+          echo "80a6ea091d704cddd416531502bdd1be1b26d9f6be6895552a1289332c554c79  inputs/packages/copiloto-executar-solution-store.zip" | sha256sum -c -
+
+      - name: Commit reconstructed ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add inputs/packages/copiloto-executar-solution-store.zip
+          git rm -r inputs/packages/.copiloto-upload
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: reconstruct copiloto solution-store bundle"
+            git push
+          fi
